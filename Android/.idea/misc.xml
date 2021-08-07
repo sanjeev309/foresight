@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="..\:/Y8_data/Project/Android/foresight/Android/app/src/main/res/drawable/ic_wifi.xml" value="0.37864583333333335" />
+        <entry key="..\:/Y8_data/Project/Android/foresight/Android/app/src/main/res/layout/activity_main.xml" value="0.33" />
+        <entry key="..\:/Y8_data/Project/Android/foresight/Android/app/src/main/res/layout/wifi_list.xml" value="0.3625" />
+      </map>
+    </option>
+  </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="11" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
