@@ -3,17 +3,17 @@ package com.cliqueraft.android.modal;
 public class WifiModal {
 
     private int id;
-    private String name;
+    private String SSID;
 
     public int getId() {
         return id;
     }
 
-    public String getName() {
-        return name;
+    public String getSSID() {
+        return SSID;
     }
 
-    public WifiModal(String name) {
-        this.name = name;
+    public WifiModal(String SSID) {
+        this.SSID = SSID;
     }
 }

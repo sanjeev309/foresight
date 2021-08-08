@@ -36,7 +36,7 @@ public class WifiReceiver extends BroadcastReceiver {
                 deviceList.add(new WifiModal(scanResult.SSID));
             }
             Toast.makeText(context, sb, Toast.LENGTH_SHORT).show();
-            WifiAdapter wifiAdapter = new WifiAdapter(deviceList);
+            WifiAdapter wifiAdapter = new WifiAdapter(deviceList, wifiManager);
             wifiDeviceList.setAdapter(wifiAdapter);
             LinearLayoutManager mLayoutManager = new LinearLayoutManager(context);
             wifiDeviceList.setLayoutManager(mLayoutManager);
