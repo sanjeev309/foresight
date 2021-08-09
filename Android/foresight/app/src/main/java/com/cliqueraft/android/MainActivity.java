@@ -31,6 +31,15 @@ public class MainActivity extends AppCompatActivity {
 
         //initializing all the view from the layout file
         initView();
+        //initializing wifi manager to get available wifi
+        wifiManager();
+    }
+
+    /**
+     * Initialize the wifi manager which helps us to get the available wifi network around the application
+     * if the mobile wifi system is off it autonomously ons the wifi system of the mobile
+     * */
+    public void wifiManager() {
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         if (!wifiManager.isWifiEnabled()) {
             Toast.makeText(getApplicationContext(), "Turning WiFi ON...", Toast.LENGTH_LONG).show();
@@ -38,6 +47,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Initializing the view from xml
+     * */
     private void initView() {
         wifiList = findViewById(R.id.wifi_list);
     }
@@ -48,6 +60,10 @@ public class MainActivity extends AppCompatActivity {
         checkingPermission();
     }
 
+    /**
+     * Checking location permission since after marshmallow version
+     * location permission is required to on the wifi from the application
+     * */
     private void checkingPermission() {
         if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
@@ -67,6 +83,9 @@ public class MainActivity extends AppCompatActivity {
         getWifi();
     }
 
+    /**
+     * If permission is granted than checking for available wifi near users
+     * */
     private void getWifi() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Toast.makeText(MainActivity.this, "version> = marshmallow", Toast.LENGTH_SHORT).show();
@@ -89,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         unregisterReceiver(receiverWifi);
     }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
