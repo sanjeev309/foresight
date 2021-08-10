@@ -1,4 +1,4 @@
-package com.cliqueraft.android;
+package com.cliqueraft.android.activities;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.widget.Toast;
 
+import com.cliqueraft.android.R;
 import com.cliqueraft.android.utils.WifiReceiver;
 
 public class MainActivity extends AppCompatActivity {

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Android</string>
+    <string name="app_name">Foresight</string>
     <string name="wifi_name">Wifi name</string>
     <string name="connect_wifi">Connect to wifi</string>
     <string name="password">Password</string>
