@@ -1,211 +1,260 @@
 #include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
 #include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
+#include <EEPROM.h>
+
+//Variables
+int i = 0;
+int statusCode;
 
 /* Put your SSID & Password */
-const char* ssid = "foresight server";  // Enter SSID here
-const char* password = "password";  //Enter Password here
+const char* APssid = "A64.foresight.1";  // Enter SSID here
+const char* APpassword = "thereisnospoon";  //Enter Password here
+String st;
+String content;
 
-/* Put IP Address details */
-IPAddress local_ip(192,168,1,1);
-IPAddress gateway(192,168,1,1);
-IPAddress subnet(255,255,255,0);
 
+//Function Decalration
+bool testWifi(String, String);
+void launchWeb(void);
+void setupAP(void);
+
+//Establishing Local server at port 80 whenever required
 ESP8266WebServer server(80);
 
-uint8_t LED1pin = D0;
-bool LED1status = HIGH;
+void setup()
+{
 
-uint8_t LED2pin = D6;
-bool LED2status = LOW;
+  Serial.begin(115200); //Initialising if(DEBUG)Serial Monitor
+  Serial.println();
+  Serial.println("Disconnecting previously connected WiFi");
+  WiFi.disconnect();
 
-
-uint8_t LED3pin = D1;
-bool LED3status = LOW;
-
-
-uint8_t LED4pin = D2;
-bool LED4status = LOW;
-
-
-uint8_t LED5pin = D3;
-bool LED5status = LOW;
-
-void setup() {
-  Serial.begin(115200);
-  pinMode(LED1pin, OUTPUT);
-  pinMode(LED2pin, OUTPUT);
-  pinMode(LED3pin, OUTPUT);
-  pinMode(LED4pin, OUTPUT);
-  pinMode(LED5pin, OUTPUT);
+  WiFi.mode(WIFI_AP_STA);
   
-  WiFi.softAP(ssid, password);
-  WiFi.softAPConfig(local_ip, gateway, subnet);
-  delay(100);
+  EEPROM.begin(512);
   
-  server.on("/", handle_OnConnect);
-  server.on("/led1on", handle_led1on);
-  server.on("/led1off", handle_led1off);
-  server.on("/led2on", handle_led2on);
-  server.on("/led2off", handle_led2off);
-  server.on("/led3on", handle_led3on);
-  server.on("/led3off", handle_led3off);
-  server.on("/led4on", handle_led4on);
-  server.on("/led4off", handle_led4off);
-  server.on("/led5on", handle_led5on);
-  server.on("/led5off", handle_led5off);
+  delay(10);
+  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.println();
+  Serial.println();
+  Serial.println("Startup");
+
+  String essid;
+  for (int i = 0; i < 32; ++i)
+  {
+    essid += char(EEPROM.read(i));
+  }
   
-  server.onNotFound(handle_NotFound);
+  Serial.println();
+  Serial.print("SSID: ");
+  Serial.println(essid);
+  Serial.println("Reading EEPROM pass");
+
+  String epass = "";
+  for (int i = 32; i < 96; ++i)
+  {
+    epass += char(EEPROM.read(i));
+  }
+  Serial.print("PASS: ");
+  Serial.println(epass);
+
+  WiFi.softAP(APssid, APpassword);
+  if (testWifi(essid, epass ))
+  {
+    Serial.println("Succesfully Connected!!!");
+    Serial.println("Creating IP Broadcast channel");
+
+    Serial.println("Set Mode to: WIFI_AP_STA");
+//    WiFi.disconnect();
+
+    IPBroadcast();
+    server.begin();
+    return;
+  }
+  else
+  {
+    Serial.println("Turning the HotSpot On");
+    setupAP();// Setup HotSpot
+    server.begin();
+  }
+
+  Serial.println();
+  Serial.println("Waiting.");
   
-  server.begin();
-  Serial.println("HTTP server started");
+  while ((WiFi.status() != WL_CONNECTED))
+  {
+    Serial.print(".");
+    delay(100);
+    server.handleClient();
+  }
+
 }
 void loop() {
-  server.handleClient();
-if(LED1status)
-  {digitalWrite(LED1pin, LOW);}
+  if ((WiFi.status() == WL_CONNECTED))
+  {
+
+    for (int i = 0; i < 10; i++)
+    {
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(1000);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(1000);
+    }
+
+  }
   else
-  {digitalWrite(LED1pin, HIGH);}
-  
-if(LED2status)
-  {digitalWrite(LED2pin, HIGH);}
-  else
-  {digitalWrite(LED2pin, LOW);}
-
-if(LED3status)
-  {digitalWrite(LED3pin, HIGH);}
-  else
-  {digitalWrite(LED3pin, LOW);}
-
-if(LED4status)
-  {digitalWrite(LED4pin, HIGH);}
-  else
-  {digitalWrite(LED4pin, LOW);}
-
-if(LED5status)
-  {digitalWrite(LED5pin, HIGH);}
-  else
-  {digitalWrite(LED5pin, LOW);}
-  
+  {
+    for (int i = 0; i < 10; i++)
+    {
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(500);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(500);
+    }
+  }
+  Serial.println(WiFi.status());
 }
 
-void handle_OnConnect() {
-  LED1status = HIGH;
-  LED2status = LOW;
-  LED3status = LOW;
-  LED4status = LOW;  
-  LED5status = LOW;
-  
-  Serial.println("GPIO7 Status: OFF | GPIO6 Status: OFF");
-  server.send(200, "text/html", SendHTML(LED1status,LED2status,LED3status,LED4status,LED5status)); 
-}
-
-void handle_led1on() {
-  LED1status = LOW;
-  Serial.println("GPIO7 Status: ON");
-  server.send(200, "text/html", SendHTML(LED1status,LED2status,LED3status,LED4status,LED5status)); 
-}
-
-void handle_led1off() {
-  LED1status = HIGH;
-  Serial.println("GPIO7 Status: OFF");
-  server.send(200, "text/html", SendHTML(LED1status,LED2status,LED3status,LED4status,LED5status)); 
-}
-
-void handle_led2on() {
-  LED2status = HIGH;
-  Serial.println("GPIO6 Status: ON");
-  server.send(200, "text/html", SendHTML(LED1status,LED2status,LED3status,LED4status,LED5status)); 
+bool testWifi(String essid,String epass)
+{
+  int c = 0;
+  Serial.println("Waiting for Wifi to connect");
+  WiFi.begin(essid.c_str(), epass.c_str());
+  while ( c < 20 ) {
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      Serial.println("IP : ");
+      Serial.print(WiFi.localIP()); 
+      return true;
+    }
+    delay(500);
+    Serial.print("*");
+    c++;
+  }
+  Serial.println("");
+  Serial.println("Connect timed out, opening AP");
+  return false;
 }
 
 
-void handle_led3on() {
-  LED3status = HIGH;
-  Serial.println("GPIO6 Status: ON");
-  server.send(200, "text/html", SendHTML(LED1status,LED2status,LED3status,LED4status,LED5status)); 
+void setupAP(void)
+{
+//  WiFi.disconnect();
+//  delay(100);
+//  int n = WiFi.scanNetworks();
+//  Serial.println("scan done");
+//  if (n == 0)
+//    Serial.println("no networks found");
+//  else
+//  {
+//    Serial.print(n);
+//    Serial.println(" networks found");
+//    for (int i = 0; i < n; ++i)
+//    {
+//      // Print SSID and RSSI for each network found
+//      Serial.print(i + 1);
+//      Serial.print(": ");
+//      Serial.print(WiFi.SSID(i));
+//      Serial.print(" (");
+//      Serial.print(WiFi.RSSI(i));
+//      Serial.print(")");
+//      Serial.println((WiFi.encryptionType(i) == ENC_TYPE_NONE) ? " " : "*");
+//      delay(10);
+//    }
+//  }
+//  Serial.println("");
+//  st = "<ol>";
+//  for (int i = 0; i < n; ++i)
+//  {
+//    // Print SSID and RSSI for each network found
+//    st += "<li>";
+//    st += WiFi.SSID(i);
+//    st += " (";
+//    st += WiFi.RSSI(i);
+//
+//    st += ")";
+//    st += (WiFi.encryptionType(i) == ENC_TYPE_NONE) ? " " : "*";
+//    st += "</li>";
+//  }
+//  st += "</ol>";
+
+  delay(100);
+//  WiFi.softAP(APssid, APpassword);
+  createWebServer();
+
 }
 
-void handle_led4on() {
-  LED4status = HIGH;
-  Serial.println("GPIO6 Status: ON");
-  server.send(200, "text/html", SendHTML(LED1status,LED2status,LED3status,LED4status,LED5status)); 
+void createWebServer()
+{
+    server.on("/", []() {
+      Serial.println("createWebServer/");
+      IPAddress ip = WiFi.softAPIP();
+      String ipStr = String(ip[0]) + '.' + String(ip[1]) + '.' + String(ip[2]) + '.' + String(ip[3]);
+      content = "<!DOCTYPE HTML>\r\n<html>Foresight Server ";
+      content += "</p><form method='get' action='setting'><label>SSID: </label><input name='ssid' length=32><input name='pass' length=64><input type='submit'></form>";
+      content += "</html>";
+      server.send(200, "text/html", content);
+    });
+
+
+    server.on("/setting", []() {
+      String qssid = server.arg("ssid");
+      String qpass = server.arg("pass");
+      if (qssid.length() > 0 && qpass.length() > 0) {
+        Serial.println("clearing eeprom");
+        for (int i = 0; i < 96; ++i) {
+          EEPROM.write(i, 0);
+        }
+        Serial.println(qssid);
+        Serial.println("");
+        Serial.println(qpass);
+        Serial.println("");
+
+        Serial.println("writing eeprom ssid:");
+        for (int i = 0; i < qssid.length(); ++i)
+        {
+          EEPROM.write(i, qssid[i]);
+          Serial.print("Wrote: ");
+          Serial.println(qssid[i]);
+        }
+        Serial.println("writing eeprom pass:");
+        for (int i = 0; i < qpass.length(); ++i)
+        {
+          EEPROM.write(32 + i, qpass[i]);
+          Serial.print("Wrote: ");
+          Serial.println(qpass[i]);
+        }
+        EEPROM.commit();
+        testWifi(qssid, qpass);
+        
+        
+        content = "{\"Success\":\"200\"}";
+        statusCode = 200;
+//        ESP.reset();
+      } else {
+        content = "{\"Error\":\"404 not found\"}";
+        statusCode = 404;
+        Serial.println("Sending 404");
+      }
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.send(statusCode, "application/json", content);
+      delay(5000);
+    });
 }
 
-void handle_led5on() {
-  LED5status = HIGH;
-  Serial.println("GPIO6 Status: ON");
-  server.send(200, "text/html", SendHTML(LED1status,LED2status,LED3status,LED4status,LED5status)); 
-}
+void IPBroadcast() {
 
-void handle_led2off() {
-  LED2status = LOW;
-  Serial.println("GPIO6 Status: OFF");
-  server.send(200, "text/html", SendHTML(LED1status,LED2status,LED3status,LED4status,LED5status)); 
-}
-
-void handle_led3off() {
-  LED3status = LOW;
-  Serial.println("GPIO6 Status: OFF");
-  server.send(200, "text/html", SendHTML(LED1status,LED2status,LED3status,LED4status,LED5status)); 
-}
-void handle_led4off() {
-  LED4status = LOW;
-  Serial.println("GPIO6 Status: OFF");
-  server.send(200, "text/html", SendHTML(LED1status,LED2status,LED3status,LED4status,LED5status)); 
-}
-void handle_led5off() {
-  LED5status = LOW;
-  Serial.println("GPIO6 Status: OFF");
-  server.send(200, "text/html", SendHTML(LED1status,LED2status,LED3status,LED4status,LED5status)); 
-}
-
-void handle_NotFound(){
-  server.send(404, "text/plain", "Not found");
-}
-
-String SendHTML(uint8_t led1stat,uint8_t led2stat,uint8_t led3stat, uint8_t led4stat, uint8_t led5stat){
-  String ptr = "<!DOCTYPE html> <html>\n";
-  ptr +="<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
-  ptr +="<title>  Foresight Server</title>\n";
-  ptr +="<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
-  ptr +="body{margin-top: 10px;} h1 {color: #444444;margin: 10px auto 30px;} h3 {color: #444444;margin-bottom: 10px;}\n";
-  ptr +=".button {display: block;width: 80px;background-color: #1abc9c;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;margin: 0px auto 35px;cursor: pointer;border-radius: 4px;}\n";
-  ptr +=".button-on {background-color: #1abc9c;}\n";
-  ptr +=".button-on:active {background-color: #16a085;}\n";
-  ptr +=".button-off {background-color: #34495e;}\n";
-  ptr +=".button-off:active {background-color: #2c3e50;}\n";
-  ptr +="p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
-  ptr +="</style>\n";
-  ptr +="</head>\n";
-  ptr +="<body>\n";
-  ptr +="<h1>Project Foresight</h1>\n";
-  ptr +="<h3>Web Control Panel</h3>\n";
-  
-   if(led1stat)
-  {ptr +="<p>LED1 Status: ON</p><a class=\"button button-off\" href=\"/led1off\">OFF</a>\n";}
-  else
-  {ptr +="<p>LED1 Status: OFF</p><a class=\"button button-on\" href=\"/led1on\">ON</a>\n";}
-
-  if(led2stat)
-  {ptr +="<p>LED2 Status: ON</p><a class=\"button button-off\" href=\"/led2off\">OFF</a>\n";}
-  else
-  {ptr +="<p>LED2 Status: OFF</p><a class=\"button button-on\" href=\"/led2on\">ON</a>\n";}
-
-  if(led3stat)
-  {ptr +="<p>LED3 Status: ON</p><a class=\"button button-off\" href=\"/led3off\">OFF</a>\n";}
-  else
-  {ptr +="<p>LED3 Status: OFF</p><a class=\"button button-on\" href=\"/led3on\">ON</a>\n";}
-
-if(led4stat)
-  {ptr +="<p>LED4 Status: ON</p><a class=\"button button-off\" href=\"/led4off\">OFF</a>\n";}
-  else
-  {ptr +="<p>LED4 Status: OFF</p><a class=\"button button-on\" href=\"/led4on\">ON</a>\n";}
-
-if(led5stat)
-  {ptr +="<p>LED5 Status: ON</p><a class=\"button button-off\" href=\"/led5off\">OFF</a>\n";}
-  else
-  {ptr +="<p>LED5 Status: OFF</p><a class=\"button button-on\" href=\"/led5on\">ON</a>\n";}
-
-  ptr +="</body>\n";
-  ptr +="</html>\n";
-  return ptr;
+  server.on("/", []() {
+      Serial.println("createWebServer/");
+      IPAddress ip = WiFi.localIP();
+      String ipStr = String(ip[0]) + '.' + String(ip[1]) + '.' + String(ip[2]) + '.' + String(ip[3]);
+      content = "{\"ip\":\"";
+      content += ipStr;
+      content += "\"}";
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.send(200, "text/html", content);
+      delay(5000);
+    });
 }
