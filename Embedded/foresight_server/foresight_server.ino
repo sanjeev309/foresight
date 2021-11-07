@@ -23,6 +23,9 @@ void setupAP(void);
 //Establishing Local server at port 80 whenever required
 ESP8266WebServer server(80);
 
+
+void(* resetFunc) (void) = 0;
+
 void setup()
 {
 
@@ -85,13 +88,16 @@ void setup()
   
   while ((WiFi.status() != WL_CONNECTED))
   {
-    Serial.print(".");
+//    Serial.print(".");
     delay(100);
     server.handleClient();
   }
 
 }
 void loop() {
+  
+  server.handleClient();
+  
   if ((WiFi.status() == WL_CONNECTED))
   {
 
@@ -102,7 +108,6 @@ void loop() {
       digitalWrite(LED_BUILTIN, LOW);
       delay(1000);
     }
-
   }
   else
   {
@@ -113,6 +118,7 @@ void loop() {
       digitalWrite(LED_BUILTIN, LOW);
       delay(500);
     }
+    resetFunc();
   }
   Serial.println(WiFi.status());
 }
@@ -188,6 +194,7 @@ void setupAP(void)
 
 void createWebServer()
 {
+  Serial.println("Entered createWebServer function");
     server.on("/", []() {
       Serial.println("createWebServer/");
       IPAddress ip = WiFi.softAPIP();
@@ -240,21 +247,23 @@ void createWebServer()
       }
       server.sendHeader("Access-Control-Allow-Origin", "*");
       server.send(statusCode, "application/json", content);
-      delay(5000);
+      delay(2000);
+      Serial.println("resetting");
+      resetFunc();  //call reset
     });
 }
 
 void IPBroadcast() {
-
+  Serial.println("IP Broadcast called");
   server.on("/", []() {
-      Serial.println("createWebServer/");
       IPAddress ip = WiFi.localIP();
+      Serial.println("IP Broadcast called, end point hit");
       String ipStr = String(ip[0]) + '.' + String(ip[1]) + '.' + String(ip[2]) + '.' + String(ip[3]);
       content = "{\"ip\":\"";
       content += ipStr;
       content += "\"}";
       server.sendHeader("Access-Control-Allow-Origin", "*");
       server.send(200, "text/html", content);
-      delay(5000);
+      delay(1000);
     });
 }
